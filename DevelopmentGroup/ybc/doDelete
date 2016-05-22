@@ -1,0 +1,80 @@
+private void doDelete(boolean select){
+		
+       
+        /**/
+		BufferedReader br = null;
+		String fl = " ";
+		int ret = -1;
+		ArrayList<FileInfo> fis = fileManager.currentFileInfo();
+		ArrayList<String> selString = new ArrayList<String>();
+		ArrayList<Integer> fTmp = fileManager.selectedItem();
+		int size = fTmp.size();
+		for (int i = 0; i < size; i++){
+			selString.add(fis.get(fTmp.get(i)).path());
+		}
+		try {
+			if (fileManager.isRoot()){ 
+				if (fileManager.multFile && select) {
+					for (int i = 0; i < size; i++){
+						fl = fl + "\"" + selString.get(i) + "\" "; 
+					}
+				} else {
+					fl = "\"" + absPath + "\"";
+				}
+				deleProgress = fileManager.linux.shell.exec("su");
+				DataOutputStream shell = new DataOutputStream(deleProgress.getOutputStream());
+				String cmd = "rm -r " + fl + "\n" + "exit\n";
+				//String cmd = "cp /sdcard/ji /data/xjf\nexit\n";
+				shell.write(cmd.getBytes());
+				shell.flush();
+				shell.close();
+				// end root
+			} else {
+				if (fileManager.multFile && select) {
+					selString.add(0, "rm");
+					selString.add(1, "-r");
+					deleProgress = fileManager.linux.shell.exec(
+							selString.toArray(new String[size + 2]));
+				} else {
+					deleProgress = fileManager.linux.delete(absPath);
+				}
+			}
+			br = new BufferedReader(
+					new InputStreamReader(deleProgress.getErrorStream()));
+			ret = deleProgress.waitFor();
+			if (ret != 0) {
+				//Log.d(tag, "Error(code = " + ret + "): " + br.readLine());
+				if (ret != 9)
+					xHandler.sendEmptyMessage(HANDLER_SHOW_DELETE_ERROR);
+				else
+					Log.d(tag, "Error(code = " + ret + "): " + br.readLine());
+			}else;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			
+			// Ë¢ÐÂÎÄ¼þÁÐ±í
+			if (ret == 0) {
+				Message msg = fileManager.listViewHandler.obtainMessage();
+				msg.what = FileManager.HANDLER_REFRESH_LISTVIEW;
+				/**
+				msg.arg1 = FileDialog.HANDLER_SET_LISTVIEW_SELECTED;
+				msg.arg2 = position - 1;
+				/**/
+				fileManager.listViewHandler.sendMessage(msg);
+			}
+			
+			doDeleDialog.dismiss();
+			doDeleDialog = null;
+			if (deleProgress != null)
+				deleProgress.destroy();
+			deleProgress = null;
+		}
+		
+		/**/
+        
+	}
