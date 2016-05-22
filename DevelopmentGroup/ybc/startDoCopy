@@ -1,0 +1,158 @@
+private void startDoCopy(ArrayList<String> from, 
+    			String toPath){
+    	
+		int fSize = from.size();
+		copyLength = 0;
+		copyedLength = 0;
+		isCopying = true;
+		isCancel = false;
+		allDoSame = false;
+		selection = -1;
+		Message msg;
+		boolean result = false;
+
+		try {
+			// ¼ÆËãÎÄ¼þ×Ü´óÐ¡. toPath.contains("/sdcard")ÊÇÒòÎªÔÚ±ðµÄÄ¿Â¼ÓÐ¿ÉÄÜÓÐÈíÁ´½Ó,,java´¦Àí²»ÁË
+			if (toPath.contains("/sdcard")) {
+				for (int i = 0; i < fSize; i++) {
+					copyLength += FileOperation.getDirectorySize(from.get(i));
+				}
+			} else {
+				copyLength = 100;
+			}
+			
+			// !cut
+			if (!deleAfterCopy) {
+				msg = handler
+						.obtainMessage(FileItemClickListener.HANDLER_SHOW_COPY_PROGRESS_DIALOG);
+				msg.arg1 = (int) copyLength;
+				perSize = ((int) copyLength / 100);
+				handler.sendMessage(msg);
+			}
+			int ret = 0;
+			//rootÓÃ»§¸´ÖÆ !canWrite && 
+			
+			if (root) {
+				String fsPerm = fileManager.getCurrentDirPerm();
+				if (fsPerm != null && fsPerm.equals(FileManager.Mounts.RO)) {
+					Log.d(tag, "file system read only");
+					return;
+				}
+				///
+
+				rootProcess = fileManager.linux.shell.exec("su");
+				rootOS = new DataOutputStream(rootProcess.getOutputStream());
+				rootEBR = new BufferedReader(new InputStreamReader(rootProcess.getErrorStream()));
+			} // root
+			
+			
+			// ¶àÎÄ¼þ´¦ÀíÐèÒª,,Í³Ò»´¦Àí
+			for (int i = 0; i < fSize; i++) {
+				String fr = from.get(i);
+				toFile = toPath + "/" + Common.getPathName(fr);
+				File fd = new File(toFile);
+				if (checkFile) {
+					if (fr.equals(toFile)) {
+						toFile = Common.pathNameAppend(toFile, "(2)");
+						while ((fd = new File(toFile)).exists()) {
+							toFile = Common.pathNameAppend(toFile, "(2)");
+						}
+					}
+				}
+
+				File fs = new File(fr);
+				// ¸´ÖÆ¶Ô»°¿òÏÔÊ¾ µ±Ç°²Ù×÷ÎÄ¼þ
+				if (!isCut) {
+					msg = handler.obtainMessage(FileItemClickListener.HANDLER_PROCESS_SET_MESSAGE);
+					Bundle b = new Bundle();
+					b.putString(FileItemClickListener.BUNDLE_FROM_PATH, fr);
+					b.putString(FileItemClickListener.BUNDLE_TO_PATH, toFile);
+					msg.setData(b);
+					
+					handler.sendMessage(msg);
+				}
+				//!canWrite && root
+				if (root) {
+					String rootCmd = "";
+					if (fd.exists()) {
+						ret = multFile(fd.getAbsolutePath());
+						if (ret == FileItemClickListener.COPY_CANCEL) {
+							doCancel();
+							return;
+						}
+						if (ret == FileItemClickListener.COPY_SKIP) {
+							if (isCut) {
+								tmpCutFiles.remove(fr);
+							}
+							continue;
+						}
+						fd = new File(toFile);
+					}
+					/**/
+					if (!isCut) {
+						rootCmd = "cp -fpr \"" + fs.getAbsolutePath() + "\" \""
+							+ fd.getAbsolutePath()
+							+ "\"\n";
+					} else {
+						rootCmd = "mv -r \"" + fs.getAbsolutePath() + "\" \""
+							+ fd.getAbsolutePath()
+							+ "\"\n";
+					}
+					if (FileManager.D) Log.d(tag, rootCmd);
+					rootOS.write(rootCmd.getBytes());
+					
+					if (rootEBR.ready()) {
+						Log.e(tag, "rootEBR: " + rootEBR.readLine());
+						// return;
+					}
+					/***/
+
+				} else {
+					// no root
+					if (copyFile(fs, fd) == FileItemClickListener.COPY_CANCEL) {
+						isCancel = true;
+						doCancel();
+						return;
+					}
+					handler.sendEmptyMessage(FileItemClickListener.HANDLER_REFRESH_LIST);
+				}
+				/**/
+			} // for ()
+			
+			result = true;
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			//Log.d(tag, "finally");
+			if (rootProcess != null) {
+				try {
+					rootOS.writeBytes("exit\n");
+					rootProcess.waitFor();
+					if (FileManager.D) {
+						Log.d(tag,  " s: " + rootOS.size());
+						Log.d(tag, " " + rootProcess.waitFor()); 
+					}
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				rootProcess.destroy();
+			}
+			rootProcess = null;
+			rootEBR = null;
+			if (result) {
+				doSuccess();
+			} else {
+				doFailure();
+			}
+			// Log.d(tag, "finish");
+		}
+
+	} // startDoCopy
