@@ -1,0 +1,38 @@
+public void doOpenFile(String file){
+		/**
+		Log.d(tag, "zip: "  + file);
+		ZipUtils.zip(file, file + "2"); 
+		/**/
+		/***/
+		Intent intent = new Intent(Intent.ACTION_VIEW);
+		Uri uri = Uri.parse("file://" + file); 
+		String type = null;
+		type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+						MimeTypeMap.getFileExtensionFromUrl(file));
+		if (type == null) {
+			String tmp = file.toLowerCase();
+			if (tmp.endsWith("mp3") || tmp.endsWith("wav") || tmp.endsWith("wma")) {
+				type = "audio/*";
+			} else if (tmp.endsWith("apk")) {
+				type = "application/vnd.android.package-archive";
+			}
+		}
+		if(type != null){
+			//intent.setType(type);
+			if (FileManager.D) Log.d(tag, type);
+			intent.setDataAndType(uri, type);
+			try {
+				fileManager.startActivityForResult(intent, 1);
+			} catch (ActivityNotFoundException e){
+				Toast.makeText(fileManager, 
+						fileManager.getString(R.string.can_not_open_file),
+						Toast.LENGTH_SHORT).show();
+			}
+		} else {
+			Toast.makeText(fileManager, 
+					fileManager.getString(R.string.can_not_find_a_suitable_program_to_open_this_file), 
+					Toast.LENGTH_SHORT).show();
+		}
+		
+		/** */
+	}
