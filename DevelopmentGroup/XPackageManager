@@ -294,7 +294,67 @@ public class XPackageManager extends Activity {
 					LinearLayout.LayoutParams.FILL_PARENT,
 					LinearLayout.LayoutParams.WRAP_CONTENT));
 			setContentView(layout);
+t1.setOnClickListener(new View.OnClickListener() {
+				
+				@Override
+				public void onClick(View v) {
+					// TODO Auto-generated method stub
+					String name = apkInfos.get(pos).packageName;
+					Intent intent = pm.getLaunchIntentForPackage(name);
+					if (intent == null){
+						Log.d(tag, "can not get intent: " +
+								name);
+						return;
+					}
+					ApkDialog.this.dismiss();
+					startActivity(intent);
+				}
+			});
+			
+			t2.setOnClickListener(new View.OnClickListener() {
 
+				@Override
+				public void onClick(View v) {
+					// TODO Auto-generated method stub
+					final String sdir = apkInfos.get(pos).applicationInfo.sourceDir;
+					/**
+					if (sdir.contains(FileManager.RW_SYSTEM)) {
+						if (fileManager == null) {
+							return;
+						}
+						if (!fileManager.isRoot()) {
+							Toast.makeText(fileManager, "卸载系统程序需要root权限", 
+									Toast.LENGTH_LONG).show();
+							return;
+						}
+						DialogInterface.OnClickListener ocl =
+							new DialogInterface.OnClickListener() {
+								
+								@Override
+								public void onClick(DialogInterface dialog, int which) {
+									// TODO Auto-generated method stub
+									if (which == AlertDialog.BUTTON_POSITIVE)
+										fileManager.listListener.delelteFile(sdir);
+							}
+						};
+
+						AlertDialog.Builder b = 
+								new AlertDialog.Builder(fileManager);
+						b.setTitle("卸载系统程序").setMessage("确定卸载  " 
+								+ apkInfos.get(pos).packageName + "?")
+								.setPositiveButton(fileManager.ok, ocl)
+								.setNegativeButton(fileManager.cancel, ocl).create().show();
+					}
+						/**/
+					Uri uri = Uri.fromParts("package", 
+							apkInfos.get(pos).packageName, 
+							null);
+					Intent intent = new Intent(Intent.ACTION_DELETE, uri);
+					ApkDialog.this.dismiss();
+					startActivity(intent);
+				}
+				
+			});
 		}
 
 	}
