@@ -1,0 +1,81 @@
+public void startCopy(ArrayList<String> from, 
+								String toPath){
+		if (isCopying)
+			return;
+		File dFile = new File(toPath);
+		if (!root && !dFile.canWrite()) {
+			doFailure();
+			return;
+		}
+		String[] cmds = null;
+
+		if (!dFile.isDirectory())
+			return;
+		deleAfterCopy = isCut;
+		int ret = -1;
+		checkFile = true;
+		int count = from.size();
+		DataOutputStream shell = null;
+		BufferedReader err = null;
+		/**
+		 * ÏÈÊÔÊÔÄÜ²»ÄÜÓÃmvÃüÁîÔËÐÐ
+		 * */
+		if (isCut) {
+			handler.sendEmptyMessage(FileItemClickListener.HANDLER_SHOW_CUT_DIALOG);
+			tmpCutFiles = (ArrayList<String>) from.clone();
+		}
+		if (isCut && (!root || dFile.canWrite())) {
+			String fPath = null;
+			try {
+				File dst;
+				for (int i = 0; i < count; i++) {
+					fPath = from.get(i);
+					toFile = toPath + "/" + Common.getPathName(fPath);
+
+					dst = new File(toFile);
+					if (dst.exists()) {
+						ret = multFile(dst.getAbsolutePath());
+						if (ret == FileItemClickListener.COPY_CANCEL) {
+							doCancel();
+							return;
+						}
+						if (ret == FileItemClickListener.COPY_SKIP) {
+							tmpCutFiles.remove(fPath);
+							continue;
+						}
+						dst = new File(toFile);
+					}
+					if (toFile.contains(fPath))
+						continue;
+					cmds = new String[] { "mv", fPath, toFile };
+					moveProcess = linux.exec(cmds);
+					ret = moveProcess.waitFor();
+					if (ret != 0) {
+						if (!root && !dFile.canWrite()) {
+							doFailure();
+							return;
+						}
+						startDoCopy(from, toPath);
+						return;
+					}
+				}
+				// success
+				if (isCut) {
+					deleAfterCopy = false;
+					doSuccess();
+					return;
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} finally {
+				if (moveProcess != null)
+					moveProcess.destroy();
+			}
+		} else {
+			startDoCopy(from, toPath);
+		}
+	}	private boolean checkFile = false;

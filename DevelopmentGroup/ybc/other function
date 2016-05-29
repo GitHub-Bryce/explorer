@@ -1,0 +1,72 @@
+//周期内的其他操作：包括撤销复制 复制进程结束 杀死等
+//具体代码如下：
+//结束：
+private void doFinish(boolean success) {
+
+		isCopying = false;
+		allDoSame = false;
+		if (destroyAfterCopy)
+			this.stopSelf();
+    	from = null;
+    	toParentPath = null;
+		moveProcess = null;
+		if (success && !isCut) {
+			handler.sendEmptyMessage(FileItemClickListener.HANDLER_COPY_FINISHED);
+		} else if (success){
+			handler.sendEmptyMessage(FileItemClickListener.HANDLER_CUT_FINISH);
+		}
+	}
+	
+	
+	失败：
+private void doFailure(){
+		doFinish(false);
+		handler.sendEmptyMessage(
+				FileItemClickListener.HANDLER_COPY_FAILURE);
+	}
+	
+	撤销：
+private void doCancel(){
+		doFinish(false);
+		handler.sendEmptyMessage(
+				FileItemClickListener.HANDLER_COPY_CANCEL);
+	}
+	
+	成功：
+private void doSuccess() {
+		if (deleAfterCopy){
+			doDelete();
+		}
+		doFinish(true);
+		try {
+			if (out != null) {
+				out.close();
+			}
+			if (in != null)
+				in.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    }
+	public String pasteToPath = "";
+	public int selection = -1;
+	public boolean allDoSame = false;
+	public boolean isHidden = false;
+	public boolean successOrCancel() { return isCancel;}
+	
+	public void setHidden(boolean b) { 
+		isHidden = b;
+	}
+	
+粘贴：
+public void doPaste() {
+		if (multPaste.isEmpty()) {
+			// Toast.makeText(FileDialog.this, "Clipboard is empty",
+			// Toast.LENGTH_SHORT).show();
+			Message msg = fileManager.listViewHandler.obtainMessage();
+			msg.what = FileManager.HANDLER_CLIP_BOARD_EMPTY;
+			fileManager.listViewHandler.sendMessage(msg);
+			isCopying = false;
+			return;
+		}
+

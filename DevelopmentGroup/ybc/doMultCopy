@@ -1,0 +1,30 @@
+public void doMultCopy(){
+		multPaste.clear();
+		int size = fileManager.selectedItem().size();
+		for (int i = 0; i < size; i++){
+			multPaste.add(fileManager.currentFileInfo()
+					.get(fileManager.selectedItem().get(i)).path());
+		}
+	}
+//借助服务 copyservice实现复制功能（copyservice.java）
+//启动copy service 服务
+void startCopyService(ArrayList<String> from,
+			String to, boolean cut){
+		pastePath = fileManager.currentPath();
+		if  ( (pastePath.equals(FileManager.RW_ROOT) 
+				&& !fileManager.canWriteRoot() )
+			|| (pastePath.equals(FileManager.RW_SYSTEM)
+					&& !fileManager.canWriteSystem())) {
+			Toast.makeText(fileManager, "µ±Ç°Ä¿Â¼²»ÄÜ½øÐÐÐ´²Ù×÷£¬ÕæÒªÐ´µÄ»°£¬µãÓÒÉÏ½ÇµÄro±äÎªrwºóÔÙÐ´",
+					Toast.LENGTH_LONG).show();
+			return;
+		}
+		allDoLikeThis = false;
+		copyWarningSelection = -1;
+		copyFileService.isCut = cut;
+		copyFileService.root = fileManager.isRoot();
+		copyFileService.setFrom(from);
+		copyFileService.setToParentPath(to);
+		fileManager.startService(new Intent(fileManager, CopyFileService.class));
+		/**/
+	}
